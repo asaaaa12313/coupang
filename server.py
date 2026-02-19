@@ -111,16 +111,16 @@ def get_sheet_data(spreadsheet_url: str):
     # 헤더는 3행 (인덱스 2)
     items = []
     for i, row in enumerate(records[3:], start=4):  # 4행부터 데이터
-        if not row[1]:  # B열(스토어ID)이 비어있으면 중단
+        if not row[2]:  # C열(스토어ID)이 비어있으면 중단
             break
         items.append({
             "row": i,
             "no": row[0] if row[0] else str(i - 3),
-            "store_id": str(row[1]).strip(),
-            "business_number": str(row[2]).strip(),
-            "order_number": str(row[3]).strip(),
-            "order_date": str(row[4]).strip(),
-            "reason": str(row[5]).strip(),
+            "company_name": str(row[1]).strip(),
+            "store_id": str(row[2]).strip(),
+            "business_number": str(row[3]).strip(),
+            "order_number": str(row[4]).strip(),
+            "order_date": str(row[5]).strip(),
             "request_type": str(row[6]).strip() if len(row) > 6 and row[6] else "블라인드&게시중단 중복",
             "status": str(row[7]).strip() if len(row) > 7 else "",
             "timestamp": str(row[8]).strip() if len(row) > 8 else "",
@@ -141,7 +141,7 @@ def get_sheet_data(spreadsheet_url: str):
 
 
 def update_sheet_result(spreadsheet_url: str, row: int, status: str, timestamp: str):
-    """Google Sheet에 결과 기록 (H열, I열)"""
+    """Google Sheet에 결과 기록 (H열, I열)"""  
     gc = get_gspread_client()
     sh = gc.open_by_url(spreadsheet_url)
     try:
@@ -301,8 +301,9 @@ async def process_single_item(page, item: dict, config: dict) -> tuple:
             return False, f"❌ 사유 카테고리 '{reason_category}' 탐지 실패"
 
         # Step 12: 사유 작성
+        default_reason = config.get("기본 사유", "리뷰 블라인드/게시중단 요청합니다.")
         await add_log(f"  [12/13] 사유 작성 중...")
-        if not await type_msg(item["reason"]):
+        if not await type_msg(item.get("reason", default_reason)):
             return False, "❌ 사유 입력 실패"
 
         # Step 13: 댓글 삭제 + 동의 접수
@@ -457,14 +458,13 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
                 })
 
                 await add_log(f"\n━━ [{i+1}/{len(items)}] Row {item['row']} ━━")
-                await add_log(f"  스토어ID: {item['store_id']}, 주문번호: {item['order_number']}")
+                await add_log(f"  업체명: {item.get('company_name', '')}, 스토어ID: {item['store_id']}, 주문번호: {item['order_number']}")
 
                 # 데이터 검증
                 missing = []
                 if not item["store_id"]: missing.append("스토어ID")
                 if not item["business_number"]: missing.append("사업자번호")
                 if not item["order_number"]: missing.append("주문번호")
-                if not item["reason"]: missing.append("사유")
 
                 if missing:
                     msg = f"⏭ 스킵 (누락: {', '.join(missing)})"
