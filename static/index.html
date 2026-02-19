@@ -392,8 +392,8 @@ td.reason { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
 // ============================================================
 // 상태 관리
 // ============================================================
-const API_BASE = window.location.origin.includes('localhost') || window.location.port === '8000'
-  ? `http://localhost:8000`
+const API_BASE = window.location.origin === 'null' || window.location.protocol === 'file:'
+  ? 'http://localhost:8000'
   : window.location.origin;
 
 let ws = null;

@@ -70,17 +70,26 @@ SCOPES = [
 
 # 서비스 계정 키 파일 경로 (환경변수 또는 기본 경로)
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT", "service_account.json")
+# Railway 배포 시: 환경변수 GOOGLE_CREDENTIALS_JSON 에 JSON 전체 내용을 붙여넣기
+GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
 
 def get_gspread_client():
     """Google Sheets 클라이언트 생성"""
-    if not Path(SERVICE_ACCOUNT_FILE).exists():
+    if GOOGLE_CREDENTIALS_JSON:
+        import json as _json
+        creds = Credentials.from_service_account_info(
+            _json.loads(GOOGLE_CREDENTIALS_JSON), scopes=SCOPES
+        )
+    elif Path(SERVICE_ACCOUNT_FILE).exists():
+        creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    else:
         raise HTTPException(
             status_code=500,
-            detail=f"서비스 계정 키 파일이 없습니다: {SERVICE_ACCOUNT_FILE}\n"
-                   "Google Cloud Console에서 서비스 계정을 생성하고 키 파일을 다운로드하세요.",
+            detail="Google 서비스 계정 인증 정보가 없습니다.\n"
+                   "Railway 환경변수 GOOGLE_CREDENTIALS_JSON 을 설정하거나 "
+                   "service_account.json 파일을 추가하세요.",
         )
-    creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return gspread.authorize(creds)
 
 
