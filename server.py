@@ -121,9 +121,8 @@ def get_sheet_data(spreadsheet_url: str):
             "business_number": str(row[3]).strip(),
             "order_number": str(row[4]).strip(),
             "order_date": str(row[5]).strip(),
-            "request_type": str(row[6]).strip() if len(row) > 6 and row[6] else "블라인드&게시중단 중복",
-            "status": str(row[7]).strip() if len(row) > 7 else "",
-            "timestamp": str(row[8]).strip() if len(row) > 8 else "",
+            "status": str(row[6]).strip() if len(row) > 6 else "",
+            "timestamp": str(row[7]).strip() if len(row) > 7 else "",
         })
 
     # 설정 시트
@@ -148,8 +147,8 @@ def update_sheet_result(spreadsheet_url: str, row: int, status: str, timestamp: 
         ws = sh.worksheet("접수데이터")
     except gspread.exceptions.WorksheetNotFound:
         ws = sh.sheet1
-    ws.update_cell(row, 8, status)     # H열
-    ws.update_cell(row, 9, timestamp)  # I열
+    ws.update_cell(row, 7, status)     # G열
+    ws.update_cell(row, 8, timestamp)  # H열
 
 
 # ============================================================
@@ -250,7 +249,8 @@ async def process_single_item(page, item: dict, config: dict) -> tuple:
             "블라인드만": "블라인드만 신청",
             "게시중단만": "게시중단 요청만 신청",
         }
-        type_text = type_map.get(item["request_type"], "블라인드&게시중단 중복 신청")
+        # 기본값 사용 (시트에서 열 삭제됨)
+        type_text = "블라인드&게시중단 중복 신청"
         if not await click_btn(type_text):
             return False, f"❌ 신청유형 '{type_text}' 버튼 탐지 실패"
 
