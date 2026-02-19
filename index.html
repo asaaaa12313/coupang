@@ -293,9 +293,8 @@ td.reason { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
       <div class="card-title"><span class="icon">📊</span> Google Sheet 연결</div>
       <button class="btn btn-ghost btn-sm" onclick="showHelp()">설정 가이드</button>
     </div>
-    <div class="connect-row">
-      <input type="text" id="sheetUrl" placeholder="Google Sheets URL을 붙여넣으세요 (https://docs.google.com/spreadsheets/d/...)"
-             value="">
+    <div class="connect-row" style="display:none;">
+      <input type="text" id="sheetUrl" value="https://docs.google.com/spreadsheets/d/1pLSc1t-LJDrT2fmHCiuY7d4w93iYvhG8p78dbpJfAy4/edit?usp=sharing">
       <button class="btn btn-primary" id="connectBtn" onclick="connectSheet()">연결</button>
     </div>
     <div class="range-row" id="rangeRow" style="display: none;">
@@ -664,9 +663,9 @@ function showHelp() {
 // 초기화
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // 서버 연결 확인
+  // 서버 연결 확인 후 구글 시트 자동 연결
   api('/api/health').then(() => {
-    console.log('서버 연결 OK');
+    connectSheet();
   }).catch(() => {
     toast('⚠️ 서버에 연결할 수 없습니다. python server.py를 먼저 실행하세요.', 'error');
   });
