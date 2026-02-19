@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>쿠팡이츠 리뷰 게시중단 자동화</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface-2: #1a1a26;
+  --surface-3: #22222f;
+  --border: #2a2a3a;
+  --text: #e4e4ec;
+  --text-dim: #7a7a8e;
+  --text-muted: #4a4a5e;
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --warn: #f59e0b;
+  --warn-bg: rgba(245, 158, 11, 0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  font-family: "Pretendard", -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── 배경 효과 ── */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, 0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+/* ── 헤더 ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0; margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+  width: 42px; height: 42px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  display: grid; place-items: center;
+  font-size: 20px; font-weight: 800; color: #fff;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+}
+.header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.header p { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+.header-right { display: flex; gap: 10px; align-items: center; }
+
+.status-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.status-badge.running { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.status-badge.running .dot { background: var(--accent); animation: pulse 1.5s infinite; }
+.status-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── 카드 ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+}
+.card-title .icon { font-size: 18px; }
+
+/* ── 연결 섹션 ── */
+.connect-row { display: flex; gap: 12px; align-items: stretch; }
+.connect-row input {
+  flex: 1; padding: 12px 16px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 14px; font-family: inherit;
+  transition: border-color 0.2s;
+}
+.connect-row input:focus { outline: none; border-color: var(--accent); }
+.connect-row input::placeholder { color: var(--text-muted); }
+
+/* ── 버튼 ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; border: 1px solid transparent;
+  transition: all 0.2s;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
+}
+.btn-primary:hover:not(:disabled) { background: #5558e6; transform: translateY(-1px); }
+.btn-danger { background: var(--error); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-ghost {
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.btn-sm { padding: 8px 16px; font-size: 13px; }
+
+/* ── 그리드 ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+
+/* ── 스탯 카드 ── */
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: var(--radius) var(--radius) 0 0;
+}
+.stat-card.total::before { background: var(--accent); }
+.stat-card.success::before { background: var(--success); }
+.stat-card.fail::before { background: var(--error); }
+.stat-card.skip::before { background: var(--warn); }
+.stat-label { font-size: 12px; color: var(--text-dim); font-weight: 500; margin-bottom: 8px; }
+.stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.stat-card.total .stat-value { color: var(--accent); }
+.stat-card.success .stat-value { color: var(--success); }
+.stat-card.fail .stat-value { color: var(--error); }
+.stat-card.skip .stat-value { color: var(--warn); }
+
+/* ── 프로그레스 바 ── */
+.progress-wrap { margin-bottom: 20px; }
+.progress-bar-bg {
+  width: 100%; height: 6px; background: var(--surface-2);
+  border-radius: 3px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  border-radius: 3px; transition: width 0.5s ease;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+.progress-text {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text-dim); margin-top: 8px;
+}
+
+/* ── 데이터 테이블 ── */
+.table-wrap {
+  overflow-x: auto; max-height: 400px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { position: sticky; top: 0; z-index: 2; }
+th {
+  padding: 10px 14px; text-align: left;
+  background: var(--surface-3); color: var(--text-dim);
+  font-weight: 600; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  color: var(--text); white-space: nowrap;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-2); }
+tr.processing td { background: var(--accent-glow); }
+td.status-success { color: var(--success); font-weight: 600; }
+td.status-fail { color: var(--error); font-weight: 600; }
+td.status-skip { color: var(--warn); font-weight: 600; }
+td.reason { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── 로그 ── */
+.log-container {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 4px;
+  height: 400px; overflow-y: auto;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12px; line-height: 1.8;
+}
+.log-line { padding: 2px 12px; border-radius: 4px; }
+.log-line:hover { background: var(--surface-2); }
+.log-time { color: var(--text-muted); margin-right: 8px; }
+.log-line.success .log-msg { color: var(--success); }
+.log-line.error .log-msg { color: var(--error); }
+.log-line.warn .log-msg { color: var(--warn); }
+
+/* ── 설정 패널 ── */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.setting-item { display: flex; flex-direction: column; gap: 6px; }
+.setting-item label { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+.setting-item input, .setting-item select {
+  padding: 10px 14px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 13px; font-family: inherit;
+}
+.setting-item input:focus, .setting-item select:focus { outline: none; border-color: var(--accent); }
+
+/* ── 빈 상태 ── */
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--text-dim);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 13px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+
+/* ── 알림 토스트 ── */
+.toast-area { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 14px 20px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.toast.success { background: var(--success); color: #fff; }
+.toast.error { background: var(--error); color: #fff; }
+.toast.info { background: var(--accent); color: #fff; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ── 범위 설정 ── */
+.range-row { display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.range-row label { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+.range-input {
+  width: 80px; padding: 8px 12px; text-align: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 13px; font-family: inherit;
+}
+.range-input:focus { outline: none; border-color: var(--accent); }
+
+/* ── 반응형 ── */
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .header { flex-direction: column; gap: 16px; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- 헤더 -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">C</div>
+      <div>
+        <h1>쿠팡이츠 리뷰 게시중단 자동화</h1>
+        <p>Happytalk 챗봇 자동 접수 시스템</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge" id="statusBadge">
+        <span class="dot"></span>
+        <span id="statusText">대기 중</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Step 1: Google Sheet 연결 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">📊</span> Google Sheet 연결</div>
+      <button class="btn btn-ghost btn-sm" onclick="showHelp()">설정 가이드</button>
+    </div>
+    <div class="connect-row">
+      <input type="text" id="sheetUrl" placeholder="Google Sheets URL을 붙여넣으세요 (https://docs.google.com/spreadsheets/d/...)"
+             value="">
+      <button class="btn btn-primary" id="connectBtn" onclick="connectSheet()">연결</button>
+    </div>
+    <div class="range-row" id="rangeRow" style="display: none;">
+      <label>처리 범위:</label>
+      <input type="number" class="range-input" id="startRow" value="1" min="1" placeholder="시작">
+      <span style="color: var(--text-muted);">~</span>
+      <input type="number" class="range-input" id="endRow" value="0" min="0" placeholder="끝 (0=전체)">
+      <span style="font-size: 12px; color: var(--text-muted);">0 = 전체</span>
+      <div style="flex: 1;"></div>
+      <button class="btn btn-primary" id="startBtn" onclick="startAutomation()" disabled>
+        ▶ 자동화 시작
+      </button>
+      <button class="btn btn-danger" id="stopBtn" onclick="stopAutomation()" style="display: none;">
+        ⏹ 중지
+      </button>
+    </div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="grid-4" id="statsGrid" style="display: none;">
+    <div class="stat-card total">
+      <div class="stat-label">전체 대상</div>
+      <div class="stat-value" id="statTotal">0</div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-label">성공</div>
+      <div class="stat-value" id="statSuccess">0</div>
+    </div>
+    <div class="stat-card fail">
+      <div class="stat-label">실패</div>
+      <div class="stat-value" id="statFail">0</div>
+    </div>
+    <div class="stat-card skip">
+      <div class="stat-label">스킵</div>
+      <div class="stat-value" id="statSkip">0</div>
+    </div>
+  </div>
+
+  <!-- 프로그레스 -->
+  <div class="progress-wrap" id="progressWrap" style="display: none;">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+    <div class="progress-text">
+      <span id="progressLabel">준비 중...</span>
+      <span id="progressPercent">0%</span>
+    </div>
+  </div>
+
+  <!-- 데이터 테이블 + 로그 -->
+  <div class="grid-2" id="mainContent" style="display: none;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📋</span> 접수 데이터</div>
+        <span style="font-size: 12px; color: var(--text-dim);" id="dataCount">0건</span>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>스토어 ID</th>
+              <th>사업자번호</th>
+              <th>주문번호</th>
+              <th>사유</th>
+              <th>결과</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📝</span> 실행 로그</div>
+        <button class="btn btn-ghost btn-sm" onclick="clearLogs()">초기화</button>
+      </div>
+      <div class="log-container" id="logContainer"></div>
+    </div>
+  </div>
+
+  <!-- 빈 상태 -->
+  <div class="empty-state" id="emptyState">
+    <div class="icon">🔗</div>
+    <h3>Google Sheet를 연결하세요</h3>
+    <p>위 입력란에 구글 스프레드시트 URL을 붙여넣고 연결 버튼을 누르면,
+       시트의 데이터를 불러와서 자동 접수를 시작할 수 있습니다.</p>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast-area" id="toastArea"></div>
+
+<script>
+// ============================================================
+// 상태 관리
+// ============================================================
+const API_BASE = window.location.origin.includes('localhost') || window.location.port === '8000'
+  ? `http://localhost:8000`
+  : window.location.origin;
+
+let ws = null;
+let sheetData = [];
+let isConnected = false;
+let isRunning = false;
+
+// ============================================================
+// API 호출
+// ============================================================
+async function api(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API_BASE}${path}`, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || '요청 실패');
+  }
+  return res.json();
+}
+
+// ============================================================
+// WebSocket 연결
+// ============================================================
+function connectWebSocket() {
+  const wsUrl = API_BASE.replace('http', 'ws') + '/ws';
+  ws = new WebSocket(wsUrl);
+
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    handleWsMessage(data);
+  };
+
+  ws.onclose = () => {
+    setTimeout(connectWebSocket, 3000);
+  };
+
+  ws.onerror = () => {};
+}
+
+function handleWsMessage(data) {
+  switch (data.event) {
+    case 'state':
+      updateState(data);
+      break;
+    case 'progress':
+      updateProgress(data.current, data.total, data.item);
+      break;
+    case 'log':
+      addLogLine(data);
+      break;
+    case 'complete':
+      onComplete(data);
+      break;
+  }
+}
+
+// ============================================================
+// Sheet 연결
+// ============================================================
+async function connectSheet() {
+  const url = document.getElementById('sheetUrl').value.trim();
+  if (!url) { toast('Google Sheets URL을 입력하세요', 'error'); return; }
+  if (!url.includes('docs.google.com/spreadsheets')) {
+    toast('유효한 Google Sheets URL이 아닙니다', 'error'); return;
+  }
+
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.textContent = '연결 중...';
+
+  try {
+    const res = await api('/api/sheets/connect', 'POST', { spreadsheet_url: url });
+    sheetData = res.items;
+    isConnected = true;
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('statsGrid').style.display = 'grid';
+    document.getElementById('mainContent').style.display = 'grid';
+    document.getElementById('rangeRow').style.display = 'flex';
+    document.getElementById('startBtn').disabled = false;
+
+    document.getElementById('statTotal').textContent = res.total_items;
+    document.getElementById('dataCount').textContent = `${res.total_items}건`;
+    document.getElementById('endRow').value = res.total_items;
+
+    renderTable(res.items);
+    toast(`✅ 시트 연결 완료! ${res.total_items}건의 데이터를 불러왔습니다`, 'success');
+
+    // WebSocket 연결
+    connectWebSocket();
+  } catch (e) {
+    toast(`연결 실패: ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '연결';
+  }
+}
+
+// ============================================================
+// 테이블 렌더링
+// ============================================================
+function renderTable(items) {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = items.map((item, i) => {
+    const statusClass = item.status?.includes('✅') ? 'status-success'
+      : item.status?.includes('❌') ? 'status-fail'
+      : item.status?.includes('⏭') ? 'status-skip' : '';
+    return `<tr id="row-${item.row}" data-row="${item.row}">
+      <td>${item.no || i+1}</td>
+      <td>${item.store_id}</td>
+      <td>${item.business_number}</td>
+      <td>${item.order_number}</td>
+      <td class="reason" title="${escHtml(item.reason)}">${escHtml(item.reason)}</td>
+      <td class="${statusClass}">${escHtml(item.status || '-')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlightRow(rowNum) {
+  document.querySelectorAll('tr.processing').forEach(tr => tr.classList.remove('processing'));
+  const tr = document.getElementById(`row-${rowNum}`);
+  if (tr) {
+    tr.classList.add('processing');
+    tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function updateRowStatus(rowNum, status) {
+  const tr = document.getElementById(`row-${rowNum}`);
+  if (!tr) return;
+  const td = tr.querySelector('td:last-child');
+  td.textContent = status;
+  td.className = status.includes('✅') ? 'status-success'
+    : status.includes('❌') ? 'status-fail'
+    : status.includes('⏭') ? 'status-skip' : '';
+}
+
+// ============================================================
+// 자동화 시작/중지
+// ============================================================
+async function startAutomation() {
+  const url = document.getElementById('sheetUrl').value.trim();
+  const startRow = parseInt(document.getElementById('startRow').value) || 1;
+  const endRow = parseInt(document.getElementById('endRow').value) || 0;
+
+  try {
+    await api('/api/automation/start', 'POST', {
+      spreadsheet_url: url,
+      start_row: startRow,
+      end_row: endRow,
+    });
+
+    isRunning = true;
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = 'inline-flex';
+    document.getElementById('progressWrap').style.display = 'block';
+    document.getElementById('statusBadge').classList.add('running');
+    document.getElementById('statusText').textContent = '실행 중';
+    toast('🚀 자동화가 시작되었습니다', 'info');
+  } catch (e) {
+    toast(`시작 실패: ${e.message}`, 'error');
+  }
+}
+
+async function stopAutomation() {
+  try {
+    await api('/api/automation/stop', 'POST');
+    toast('⛔ 중지 요청을 보냈습니다', 'info');
+  } catch (e) {
+    toast(`중지 실패: ${e.message}`, 'error');
+  }
+}
+
+// ============================================================
+// 상태 업데이트
+// ============================================================
+function updateState(state) {
+  document.getElementById('statSuccess').textContent = state.success || 0;
+  document.getElementById('statFail').textContent = state.fail || 0;
+  document.getElementById('statSkip').textContent = state.skip || 0;
+
+  if (!state.is_running && isRunning) {
+    onComplete(state);
+  }
+}
+
+function updateProgress(current, total, item) {
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = `${pct}%`;
+  document.getElementById('progressPercent').textContent = `${pct}%`;
+  document.getElementById('progressLabel').textContent =
+    `${current}/${total} 처리 중 — 스토어 ${item?.store_id || ''}`;
+  
+  if (item?.row) highlightRow(item.row);
+}
+
+function onComplete(data) {
+  isRunning = false;
+  document.getElementById('startBtn').style.display = 'inline-flex';
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('statusBadge').classList.remove('running');
+  document.getElementById('statusText').textContent = '완료';
+  document.querySelectorAll('tr.processing').forEach(tr => tr.classList.remove('processing'));
+
+  const total = (data.success || 0) + (data.fail || 0) + (data.skip || 0);
+  toast(`✅ 완료! ${data.success || 0}건 성공 / ${data.fail || 0}건 실패 / ${data.skip || 0}건 스킵`, 'success');
+
+  // 시트에서 결과 다시 로드
+  setTimeout(() => connectSheet(), 2000);
+}
+
+// ============================================================
+// 로그
+// ============================================================
+function addLogLine(log) {
+  const container = document.getElementById('logContainer');
+  const div = document.createElement('div');
+  div.className = `log-line ${log.level || 'info'}`;
+  div.innerHTML = `<span class="log-time">${log.time || ''}</span><span class="log-msg">${escHtml(log.message)}</span>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function clearLogs() {
+  document.getElementById('logContainer').innerHTML = '';
+}
+
+// ============================================================
+// 토스트
+// ============================================================
+function toast(msg, type = 'info') {
+  const area = document.getElementById('toastArea');
+  const div = document.createElement('div');
+  div.className = `toast ${type}`;
+  div.textContent = msg;
+  area.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ============================================================
+// 도움말
+// ============================================================
+function showHelp() {
+  const msg = `📖 설정 가이드
+
+1. Google Cloud Console에서 프로젝트 생성
+2. Google Sheets API + Google Drive API 활성화
+3. 서비스 계정 생성 → JSON 키 다운로드
+4. 키 파일을 server.py와 같은 폴더에 service_account.json으로 저장
+5. Google Sheets에서 서비스 계정 이메일에 편집 권한 부여
+6. 엑셀 템플릿을 Google Sheets에 업로드 후 URL 복사
+
+자세한 내용은 README.md를 참고하세요.`;
+  alert(msg);
+}
+
+// ============================================================
+// 초기화
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // 서버 연결 확인
+  api('/api/health').then(() => {
+    console.log('서버 연결 OK');
+  }).catch(() => {
+    toast('⚠️ 서버에 연결할 수 없습니다. python server.py를 먼저 실행하세요.', 'error');
+  });
+});
+</script>
+</body>
+</html>

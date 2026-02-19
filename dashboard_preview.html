@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>쿠팡이츠 리뷰 게시중단 자동화 - 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #07070d; --surface: #0f0f18; --surface-2: #161622; --surface-3: #1e1e2e;
+  --border: #252538; --border-focus: #4f46e5;
+  --text: #e8e8f0; --text-dim: #8888a0; --text-muted: #505068;
+  --accent: #6366f1; --accent-light: #818cf8; --accent-glow: rgba(99,102,241,0.12);
+  --success: #10b981; --success-bg: rgba(16,185,129,0.08);
+  --error: #ef4444; --error-bg: rgba(239,68,68,0.08);
+  --warn: #f59e0b; --warn-bg: rgba(245,158,11,0.08);
+  --radius: 14px; --radius-sm: 10px;
+}
+body {
+  font-family: "Noto Sans KR", sans-serif; background: var(--bg); color: var(--text);
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 100%, rgba(139,92,246,0.04) 0%, transparent 50%);
+  pointer-events: none;
+}
+.app { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 28px 32px; }
+
+/* ── Header ── */
+.header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 24px; margin-bottom: 28px; border-bottom: 1px solid var(--border); }
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  display: grid; place-items: center; font-size: 22px; font-weight: 900; color: #fff;
+  box-shadow: 0 4px 24px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.header h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; }
+.header p { font-size: 13px; color: var(--text-dim); margin-top: 3px; font-weight: 400; }
+.badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 24px; font-size: 12px; font-weight: 700;
+  background: var(--accent-glow); border: 1px solid rgba(99,102,241,0.25); color: var(--accent-light);
+}
+.badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-light); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+/* ── Card ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.card-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.card-title .ic { font-size: 18px; }
+
+/* ── Connect ── */
+.connect { display: flex; gap: 12px; }
+.connect input {
+  flex: 1; padding: 13px 18px; background: var(--surface-2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: inherit;
+  transition: all 0.2s;
+}
+.connect input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.connect input::placeholder { color: var(--text-muted); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px;
+  border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1, #7c3aed); color: #fff;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.btn-primary:hover { box-shadow: 0 6px 28px rgba(99,102,241,0.45); transform: translateY(-1px); }
+.btn-danger { background: var(--error); color: #fff; }
+.btn-ghost { background: transparent; color: var(--text-dim); border: 1.5px solid var(--border); }
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-sm { padding: 9px 18px; font-size: 12px; }
+
+/* ── Range ── */
+.range-bar { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+.range-bar label { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+.range-in { width: 72px; padding: 9px; text-align: center; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: inherit; }
+.range-in:focus { outline: none; border-color: var(--accent); }
+.sep { color: var(--text-muted); }
+
+/* ── Stats ── */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+.st {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px; position: relative; overflow: hidden;
+}
+.st::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.st.t::after { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.st.s::after { background: var(--success); }
+.st.f::after { background: var(--error); }
+.st.k::after { background: var(--warn); }
+.st-label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+.st-val { font-size: 36px; font-weight: 900; letter-spacing: -2px; font-variant-numeric: tabular-nums; }
+.st.t .st-val { color: var(--accent-light); }
+.st.s .st-val { color: var(--success); }
+.st.f .st-val { color: var(--error); }
+.st.k .st-val { color: var(--warn); }
+.st-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Progress ── */
+.prog { margin-bottom: 22px; }
+.prog-bg { width: 100%; height: 5px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa); border-radius: 3px; transition: width 0.6s cubic-bezier(0.22,1,0.36,1); position: relative; }
+.prog-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); animation: shimmer 2s infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.prog-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 10px; font-weight: 500; }
+
+/* ── Grid ── */
+.grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; }
+
+/* ── Table ── */
+.table-wrap { overflow: auto; max-height: 420px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead { position: sticky; top: 0; z-index: 2; }
+th { padding: 11px 16px; text-align: left; background: var(--surface-3); color: var(--text-muted); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 11px 16px; border-bottom: 1px solid rgba(37,37,56,0.6); white-space: nowrap; font-weight: 400; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(99,102,241,0.04); }
+tr.active td { background: var(--accent-glow); }
+.s-ok { color: var(--success); font-weight: 700; }
+.s-fail { color: var(--error); font-weight: 700; }
+.s-skip { color: var(--warn); font-weight: 700; }
+.s-wait { color: var(--text-muted); }
+td.rsn { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Log ── */
+.log-box {
+  background: #08080e; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 6px; height: 420px; overflow-y: auto;
+  font-family: "JetBrains Mono", monospace; font-size: 11.5px; line-height: 1.9;
+}
+.log-box::-webkit-scrollbar { width: 6px; }
+.log-box::-webkit-scrollbar-track { background: transparent; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.ll { padding: 2px 14px; border-radius: 4px; }
+.ll:hover { background: rgba(255,255,255,0.02); }
+.lt { color: var(--text-muted); margin-right: 10px; font-weight: 500; }
+.ll.success .lm { color: var(--success); }
+.ll.error .lm { color: var(--error); }
+.ll.warn .lm { color: var(--warn); }
+
+/* ── Empty ── */
+.empty { text-align: center; padding: 72px 20px; }
+.empty .eic { font-size: 56px; margin-bottom: 20px; filter: grayscale(0.3); }
+.empty h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.empty p { font-size: 13px; color: var(--text-dim); max-width: 420px; margin: 0 auto; line-height: 1.7; }
+
+@media (max-width: 960px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .grid { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: flex-start; gap: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">C</div>
+      <div>
+        <h1>쿠팡이츠 리뷰 게시중단 자동화</h1>
+        <p>Happytalk 챗봇 자동 접수 · Google Sheets 연동</p>
+      </div>
+    </div>
+    <div class="badge"><span class="dot"></span> 실행 중 — 7/10</div>
+  </header>
+
+  <!-- Connect -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ic">📊</span> Google Sheet 연결</div>
+      <button class="btn btn-ghost btn-sm" onclick="alert('📖 설정 가이드\n\n1. Google Cloud Console에서 서비스 계정 생성\n2. Google Sheets API + Drive API 활성화\n3. JSON 키 다운로드 → service_account.json으로 저장\n4. 시트에 서비스 계정 이메일로 편집 권한 부여')">설정 가이드</button>
+    </div>
+    <div class="connect">
+      <input type="text" value="https://docs.google.com/spreadsheets/d/1aBcDeFg.../edit" readonly>
+      <button class="btn btn-primary" style="opacity:0.6; pointer-events:none;">✓ 연결됨</button>
+    </div>
+    <div class="range-bar">
+      <label>처리 범위:</label>
+      <input type="number" class="range-in" value="1" readonly>
+      <span class="sep">~</span>
+      <input type="number" class="range-in" value="10" readonly>
+      <span style="font-size:12px;color:var(--text-muted)">총 10건</span>
+      <div style="flex:1"></div>
+      <button class="btn btn-danger btn-sm">⏹ 중지</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="st t"><div class="st-label">전체 대상</div><div class="st-val">10</div><div class="st-sub">접수데이터 시트</div></div>
+    <div class="st s"><div class="st-label">성공</div><div class="st-val" id="suc">5</div><div class="st-sub">접수 완료</div></div>
+    <div class="st f"><div class="st-label">실패</div><div class="st-val" id="fai">1</div><div class="st-sub">재시도 후 실패</div></div>
+    <div class="st k"><div class="st-label">스킵</div><div class="st-val">1</div><div class="st-sub">데이터 누락</div></div>
+  </div>
+
+  <!-- Progress -->
+  <div class="prog">
+    <div class="prog-bg"><div class="prog-fill" id="pf" style="width:70%"></div></div>
+    <div class="prog-info"><span id="plbl">7/10 처리 중 — 스토어 456789</span><span id="ppct">70%</span></div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="ic">📋</span> 접수 데이터</div>
+        <span style="font-size:12px;color:var(--text-dim)">10건</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No.</th><th>스토어 ID</th><th>사업자번호</th><th>주문번호</th><th>사유</th><th>결과</th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="ic">📝</span> 실행 로그</div>
+        <button class="btn btn-ghost btn-sm">초기화</button>
+      </div>
+      <div class="log-box" id="lb"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const demo = [
+  {no:1, sid:"123456", bn:"123-45-67890", on:"ORD-0001", rsn:"허위 리뷰 - 실제 주문과 무관", st:"✅ 접수 완료"},
+  {no:2, sid:"789012", bn:"987-65-43210", on:"ORD-0002", rsn:"비방/욕설 포함", st:"✅ 접수 완료"},
+  {no:3, sid:"345678", bn:"111-22-33333", on:"ORD-0003", rsn:"경쟁업체 의심 악의적 리뷰", st:"✅ 접수 완료"},
+  {no:4, sid:"901234", bn:"222-33-44444", on:"ORD-0004", rsn:"개인정보 노출 리뷰", st:"✅ 접수 완료"},
+  {no:5, sid:"567890", bn:"333-44-55555", on:"ORD-0005", rsn:"음란/부적절 내용 포함", st:"✅ 접수 완료"},
+  {no:6, sid:"234567", bn:"444-55-66666", on:"ORD-0006", rsn:"스토어ID/사업자번호 불일치", st:"❌ 인증 실패"},
+  {no:7, sid:"456789", bn:"555-66-77777", on:"ORD-0007", rsn:"허위 배달 불만 리뷰", st:"", active:true},
+  {no:8, sid:"678901", bn:"666-77-88888", on:"ORD-0008", rsn:"", st:"⏭ 스킵 (사유 누락)"},
+  {no:9, sid:"890123", bn:"777-88-99999", on:"ORD-0009", rsn:"반복적 악성 리뷰", st:""},
+  {no:10, sid:"012345", bn:"888-99-00000", on:"ORD-0010", rsn:"사진 도용 의심", st:""},
+];
+
+const tb = document.getElementById('tb');
+tb.innerHTML = demo.map(d => {
+  const cls = d.st?.includes('✅') ? 's-ok' : d.st?.includes('❌') ? 's-fail' : d.st?.includes('⏭') ? 's-skip' : 's-wait';
+  return `<tr class="${d.active?'active':''}"><td>${d.no}</td><td>${d.sid}</td><td>${d.bn}</td><td>${d.on}</td><td class="rsn" title="${d.rsn}">${d.rsn||'-'}</td><td class="${cls}">${d.st||'대기'}</td></tr>`;
+}).join('');
+
+const logs = [
+  {t:"14:23:01", m:"🚀 자동화를 시작합니다...", l:"info"},
+  {t:"14:23:01", m:"📊 총 10건 처리 예정", l:"info"},
+  {t:"14:23:02", m:"", l:"info"},
+  {t:"14:23:02", m:"━━ [1/10] Row 4 ━━", l:"info"},
+  {t:"14:23:02", m:"  스토어ID: 123456, 주문번호: ORD-0001", l:"info"},
+  {t:"14:23:05", m:"  [1/13] 챗봇 접속 중...", l:"info"},
+  {t:"14:23:08", m:"  [2/13] '리뷰 블라인드/게시중단 요청' 선택", l:"info"},
+  {t:"14:23:55", m:"  [13/13] 최종 접수...", l:"info"},
+  {t:"14:23:58", m:"  ✅ 접수 완료!", l:"success"},
+  {t:"14:24:01", m:"  ⏳ 4.2초 대기...", l:"info"},
+  {t:"14:24:05", m:"", l:"info"},
+  {t:"14:24:05", m:"━━ [2/10] Row 5 ━━", l:"info"},
+  {t:"14:24:05", m:"  스토어ID: 789012, 주문번호: ORD-0002", l:"info"},
+  {t:"14:25:02", m:"  ✅ 접수 완료!", l:"success"},
+  {t:"14:25:05", m:"", l:"info"},
+  {t:"14:25:05", m:"━━ [3/10] Row 6 ━━", l:"info"},
+  {t:"14:26:01", m:"  ✅ 접수 완료!", l:"success"},
+  {t:"14:27:02", m:"━━ [4/10] Row 7 ━━", l:"info"},
+  {t:"14:28:00", m:"  ✅ 접수 완료!", l:"success"},
+  {t:"14:29:01", m:"━━ [5/10] Row 8 ━━", l:"info"},
+  {t:"14:29:55", m:"  ✅ 접수 완료!", l:"success"},
+  {t:"14:30:02", m:"━━ [6/10] Row 9 ━━", l:"info"},
+  {t:"14:30:45", m:"  ❌ 스토어ID/사업자번호 불일치", l:"error"},
+  {t:"14:30:45", m:"  ❌ 최종 실패: 인증 실패", l:"error"},
+  {t:"14:31:00", m:"", l:"info"},
+  {t:"14:31:00", m:"━━ [7/10] Row 10 ━━", l:"info"},
+  {t:"14:31:00", m:"  스토어ID: 456789, 주문번호: ORD-0007", l:"info"},
+  {t:"14:31:03", m:"  [1/13] 챗봇 접속 중...", l:"info"},
+  {t:"14:31:06", m:"  [2/13] '리뷰 블라인드/게시중단 요청' 선택", l:"info"},
+  {t:"14:31:09", m:"  [3/13] 신청유형 선택", l:"info"},
+  {t:"14:31:12", m:"  [4/13] '본인 신청' 선택", l:"info"},
+  {t:"14:31:15", m:"  [5/13] '간편하게 접수하기' 선택", l:"info"},
+  {t:"14:31:18", m:"  [6/13] '계속 신청하기' 선택", l:"info"},
+  {t:"14:31:22", m:"  [7/13] 스토어 ID 입력: 456789", l:"info"},
+];
+
+const lb = document.getElementById('lb');
+lb.innerHTML = logs.map(l => `<div class="ll ${l.l}"><span class="lt">${l.t}</span><span class="lm">${l.m || ' '}</span></div>`).join('');
+lb.scrollTop = lb.scrollHeight;
+
+// 애니메이션: 진행 시뮬레이션
+let step = 7;
+const steps = [
+  {m:"  [8/13] 사업자번호 입력: 555-66-77777", pct:72},
+  {m:"  [9/13] 인증 확인", pct:74},
+  {m:"  [10/13] 주문정보 입력: ORD-0007 / 2025-02-19", pct:76},
+  {m:"  [11/13] 사유 카테고리: '기타'", pct:78},
+  {m:"  [12/13] 사유 작성 중...", pct:80},
+  {m:"  [13/13] 최종 접수...", pct:85},
+  {m:"  ✅ 접수 완료!", pct:90, l:"success", done:true},
+];
+let si = 0;
+setInterval(() => {
+  if (si >= steps.length) return;
+  const s = steps[si];
+  const div = document.createElement('div');
+  div.className = `ll ${s.l||'info'}`;
+  const now = new Date();
+  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  div.innerHTML = `<span class="lt">${t}</span><span class="lm">${s.m}</span>`;
+  lb.appendChild(div);
+  lb.scrollTop = lb.scrollHeight;
+  document.getElementById('pf').style.width = s.pct+'%';
+  document.getElementById('ppct').textContent = s.pct+'%';
+  if (s.done) {
+    document.getElementById('suc').textContent = '6';
+    document.getElementById('plbl').textContent = '8/10 처리 중 — 스토어 678901';
+    // 테이블 업데이트
+    const rows = tb.querySelectorAll('tr');
+    if (rows[6]) {
+      rows[6].classList.remove('active');
+      rows[6].querySelector('td:last-child').className = 's-ok';
+      rows[6].querySelector('td:last-child').textContent = '✅ 접수 완료';
+    }
+  }
+  si++;
+}, 2500);
+</script>
+</body>
+</html>
