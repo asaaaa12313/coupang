@@ -30,6 +30,7 @@ from google.oauth2.service_account import Credentials
 
 # ── Playwright ──
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+from playwright_stealth import stealth_async
 
 app = FastAPI(title="쿠팡이츠 리뷰 게시중단 자동화")
 
@@ -457,6 +458,7 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
                 user_agent=user_agent
             )
             page = await context.new_page()
+            await stealth_async(page)
 
             for i, item in enumerate(items):
                 if automation_state["should_stop"]:
