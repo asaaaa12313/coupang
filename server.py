@@ -447,7 +447,15 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
         # Playwright 실행
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=headless, slow_mo=100)
-            context = await browser.new_context(viewport={"width": 1280, "height": 800}, locale="ko-KR")
+            
+            # 봇 탐지 회피를 위한 User-Agent 설정
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            
+            context = await browser.new_context(
+                viewport={"width": 1280, "height": 800}, 
+                locale="ko-KR",
+                user_agent=user_agent
+            )
             page = await context.new_page()
 
             for i, item in enumerate(items):
