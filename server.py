@@ -540,6 +540,13 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
                     await add_log(f"  ⚠️ 시트 결과 기록 실패: {e}", "warn")
 
                 await broadcast("state", automation_state)
+                
+                # 시크릿 창 닫기
+                try:
+                    await page.close()
+                    await context.close()
+                except Exception:
+                    pass
 
                 # 건 간 대기
                 if i < len(items) - 1 and not automation_state["should_stop"]:
