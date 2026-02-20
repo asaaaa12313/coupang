@@ -12,6 +12,7 @@ FastAPI 기반 백엔드 서버
 import asyncio
 import json
 import os
+import sys
 import random
 import time
 from datetime import datetime
@@ -433,8 +434,12 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
         automation_state["total_items"] = len(items)
         delay = int(config.get("건당 대기시간(초)", 3))
         max_retry = int(config.get("최대 재시도 횟수", 3))
-        headless_val = str(config.get("브라우저 표시", "TRUE")).upper()
+        headless_val = str(config.get("브라우저 표시", "FALSE")).upper()
         headless = headless_val not in ("TRUE", "1", "예", "Y")
+
+        # GUI(화면)가 없는 리눅스/서버 환경에서는 강제로 headless=True 적용
+        if os.name == "posix" and "DISPLAY" not in os.environ and sys.platform != "darwin":
+            headless = True
 
         await add_log(f"📊 총 {len(items)}건 처리 예정")
         await broadcast("state", automation_state)
