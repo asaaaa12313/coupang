@@ -186,8 +186,8 @@ async def add_log(message: str, level: str = "info"):
 async def process_single_item(page, item: dict, config: dict) -> tuple:
     """단일 건 챗봇 접수 처리"""
     timeout = int(config.get("요소 탐지 타임아웃(초)", 10)) * 1000
-    # 기존 buly.kr 단축 URL 대신 원본 해피톡 URL 접속 (Railway IP 차단/타임아웃 방지)
-    chatbot_url = config.get("챗봇 URL", "https://design.happytalkio.com/chatting?siteId=4000002553&siteName=%EC%BF%A0%ED%8C%A1%EC%9D%B4%EC%B8%A0&categoryId=154858&divisionId=155774")
+    # 구글 시트에 buly.kr/BpEMAeD 등 잘못된 URL이 설정되어 있어도 강제로 해피톡 원본 접속
+    chatbot_url = "https://design.happytalkio.com/chatting?siteId=4000002553&siteName=%EC%BF%A0%ED%8C%A1%EC%9D%B4%EC%B8%A0&categoryId=154858&divisionId=155774"
     reason_category = config.get("사유 카테고리", "기타")
     delete_comment = config.get("댓글 삭제 동의", "네")
 
