@@ -209,28 +209,36 @@ async def process_single_item(page, item: dict, config: dict) -> tuple:
             return False
 
     async def type_msg(text, wait_after=2):
-        """메시지 입력 + 전송 헬퍼"""
         try:
             input_sel = (
                 "input[placeholder*='메시지'], "
                 "textarea[placeholder*='메시지'], "
                 "input[placeholder*='입력'], "
                 "textarea[placeholder*='입력'], "
+                "textarea[name='textarea'], "
                 "div[contenteditable='true']"
             )
             el = page.locator(input_sel).first
             await el.wait_for(state="visible", timeout=timeout)
-            await el.click()
-            await el.fill("")
-            await asyncio.sleep(0.2)
-            for char in text:
-                await el.type(char, delay=random.randint(30, 80))
-            await asyncio.sleep(0.3)
-            send_btn = page.locator("button:has(svg), button[class*='send']").last
-            await send_btn.click()
+            await asyncio.sleep(0.5)
+            
+            # 입력 창이 가려져 있거나 비활성화되어 리액트가 30초 무한대기하는 현상 방지:
+            # 강제로 활성화 후 한 글자씩 타이핑
+            try:
+                await el.click(force=True, timeout=timeout)
+                await el.fill(text, timeout=timeout)
+            except Exception:
+                # fill이 막혔다면 자바스크립트로 강제 입력
+                await el.evaluate(f"node => {{ node.value = '{text}'; node.dispatchEvent(new Event('input', {{ bubbles: true }})); }}")
+                
+            await asyncio.sleep(0.5)
+            await page.keyboard.press("Enter")
             await asyncio.sleep(wait_after)
             return True
-        except Exception:
+        except PlaywrightTimeout:
+            return False
+        except Exception as e:
+            await add_log(f"  [오류] 메시지 입력 실패: {str(e)[:50]}", "warning")
             return False
 
     try:
@@ -370,6 +378,9 @@ async def start_automation(req: RunRequest):
     """자동화 시작"""
     if automation_state["is_running"]:
         raise HTTPException(status_code=409, detail="이미 실행 중입니다")
+
+    # 중복 실행 방지를 위해 바로 상태 변경
+    automation_state["is_running"] = True
 
     # 백그라운드 태스크로 실행
     asyncio.create_task(run_automation(req.spreadsheet_url, req.start_row, req.end_row))
