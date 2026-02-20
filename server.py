@@ -464,14 +464,6 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
             # 봇 탐지 회피를 위한 User-Agent 설정
             user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             
-            context = await browser.new_context(
-                viewport={"width": 1280, "height": 800}, 
-                locale="ko-KR",
-                user_agent=user_agent
-            )
-            page = await context.new_page()
-            await Stealth().apply_stealth_async(page)
-
             for i, item in enumerate(items):
                 if automation_state["should_stop"]:
                     await add_log("⛔ 사용자에 의해 중지되었습니다.", "warn")
@@ -501,6 +493,15 @@ async def run_automation(spreadsheet_url: str, start_row: int, end_row: int):
                                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                     await broadcast("state", automation_state)
                     continue
+                
+                # 매 항목마다 새로운 브라우저 컨텍스트/시크릿 창 생성 (챗봇 세션, 쿠키 초기화 목적)
+                context = await browser.new_context(
+                    viewport={"width": 1280, "height": 800}, 
+                    locale="ko-KR",
+                    user_agent=user_agent
+                )
+                page = await context.new_page()
+                await Stealth().apply_stealth_async(page)
 
                 # 접수 시도
                 success = False

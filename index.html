@@ -805,6 +805,11 @@
     // WebSocket 연결
     // ============================================================
     function connectWebSocket() {
+      if (ws) {
+        ws.onclose = null; // Prevent reconnect loop from old socket
+        ws.close();
+      }
+      
       const wsUrl = API_BASE.replace('http', 'ws') + '/ws';
       ws = new WebSocket(wsUrl);
 
