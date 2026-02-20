@@ -235,7 +235,7 @@ async def process_single_item(page, item: dict, config: dict) -> tuple:
     try:
         # Step 1: 챗봇 접속
         await add_log(f"  [1/13] 챗봇 접속 중...")
-        await page.goto(chatbot_url, wait_until="networkidle", timeout=30000)
+        await page.goto(chatbot_url, wait_until="domcontentloaded", timeout=30000)
         await asyncio.sleep(3)
 
         # Step 2: 리뷰 블라인드/게시중단 요청
